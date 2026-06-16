@@ -1,0 +1,283 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Помощник: квадратные уравнения (свой ввод)</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: 'Segoe UI', Arial, sans-serif;
+            background: #f5f7fa;
+            padding: 20px;
+            color: #333;
+        }
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+        }
+        h1 {
+            text-align: center;
+            font-size: 1.5rem;
+            margin-bottom: 8px;
+        }
+        .subtitle {
+            text-align: center;
+            color: #666;
+            margin-bottom: 30px;
+        }
+        .card {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+            margin-bottom: 20px;
+        }
+        .inputs-row {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+            align-items: center;
+            margin: 15px 0;
+        }
+        .input-group {
+            display: flex;
+            flex-direction: column;
+            min-width: 80px;
+        }
+        .input-group label {
+            font-size: 13px;
+            color: #666;
+            margin-bottom: 4px;
+        }
+        .input-group input {
+            padding: 10px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 16px;
+            width: 100%;
+            text-align: center;
+        }
+        .equation {
+            font-size: 22px;
+            font-weight: 600;
+            text-align: center;
+            margin: 15px 0;
+            padding: 10px;
+            background: #fafafa;
+            border-radius: 8px;
+        }
+        .hint-text {
+            font-size: 16px;
+            line-height: 1.5;
+            color: #444;
+            min-height: 90px;
+            margin: 15px 0;
+        }
+        textarea {
+            width: 100%;
+            padding: 12px;
+            border: 1px solid #ccc;
+            border-radius: 8px;
+            font-size: 15px;
+            height: 100px;
+            resize: vertical;
+            margin-bottom: 12px;
+        }
+        .feedback {
+            margin-top: 8px;
+            font-weight: bold;
+        }
+        .feedback.ok { color: #2e7d32; }
+        .feedback.bad { color: #c62828; }
+        .btn {
+            display: block;
+            width: 100%;
+            padding: 12px;
+            border: none;
+            border-radius: 8px;
+            font-size: 16px;
+            cursor: pointer;
+            transition: transform 0.15s, box-shadow 0.15s;
+            margin-bottom: 8px;
+        }
+        .btn:active { transform: scale(0.98); }
+        .btn-orange { background: #ff9800; color: white; }
+        .btn-outline {
+            background: transparent;
+            border: 1px solid #ccc;
+            color: #555;
+        }
+        @media (max-width: 400px) {
+            .inputs-row { flex-direction: column; }
+            .input-group { width: 100%; }
+            .card { padding: 16px; }
+            h1 { font-size: 1.3rem; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Помощник: квадратные уравнения</h1>
+        <p class="subtitle">Вводи свои коэффициенты — я буду подталкивать к решению.</p>
+
+        <div class="card">
+            <h3>Введи коэффициенты уравнения ax² + bx + c = 0</h3>
+            <div class="inputs-row">
+                <div class="input-group">
+                    <label>a</label>
+                    <input type="number" id="a" value="1" step="any">
+                </div>
+                <div class="input-group">
+                    <label>b</label>
+                    <input type="number" id="b" value="0" step="any">
+                </div>
+                <div class="input-group">
+                    <label>c</label>
+                    <input type="number" id="c" value="0" step="any">
+                </div>
+            </div>
+            <button onclick="loadEquation()" class="btn btn-orange">Загрузить уравнение</button>
+            <div id="input-error" class="feedback bad" style="display:none; margin-top:8px;"></div>
+
+            <div id="equation" class="equation">ax² + bx + c = 0</div>
+        </div>
+
+        <div class="card">
+            <h3>Подсказки</h3>
+            <div id="hint-text" class="hint-text">
+                Нажми «Получить подсказку», чтобы начать.
+            </div>
+            <button onclick="giveHint()" class="btn btn-orange">Получить подсказку</button>
+            <button onclick="resetHints()" class="btn btn-outline">Сбросить подсказки</button>
+        </div>
+
+        <div class="card">
+            <h3>Твои шаги (запиши тут)</h3>
+            <textarea id="steps" placeholder="Например: D = b² - 4ac = ..."></textarea>
+            <button onclick="checkSteps()" class="btn">Проверить ход решения</button>
+            <div id="step-feedback" class="feedback"></div>
+        </div>
+    </div>
+
+    <script>
+        let currentEquation = null;
+        let hintStep = 0;
+
+        function loadEquation() {
+            const a = parseFloat(document.getElementById('a').value);
+            const b = parseFloat(document.getElementById('b').value);
+            const c = parseFloat(document.getElementById('c').value);
+            const errEl = document.getElementById('input-error');
+
+            if (isNaN(a) || isNaN(b) || isNaN(c)) {
+                errEl.textContent = 'Все поля должны быть числами.';
+                errEl.style.display = 'block';
+                return;
+            }
+            if (a === 0) {
+                errEl.textContent = 'Коэффициент a не должен быть равен 0 — иначе это не квадратное уравнение.';
+                errEl.style.display = 'block';
+                return;
+            }
+
+            errEl.style.display = 'none';
+
+            const D = b * b - 4 * a * c;
+            const sqrtD = Math.sqrt(Math.abs(D)); // abs только чтобы не ломать sqrt при отриц. D
+            const x1 = D >= 0 ? (-b + sqrtD) / (2 * a) : null;
+            const x2 = D >= 0 ? (-b - sqrtD) / (2 * a) : null;
+
+            currentEquation = { a, b, c, D, x1, x2 };
+
+            const signB = b >= 0 ? '+' : '-';
+            const absB = Math.abs(b);
+            const signC = c >= 0 ? '+' : '-';
+            const absC = Math.abs(c);
+
+            document.getElementById('equation').textContent =
+                `${a}x² ${signB} ${absB}x ${signC} ${absC} = 0`;
+
+            resetHints();
+            document.getElementById('steps').value = '';
+            document.getElementById('step-feedback').textContent = '';
+        }
+
+        function giveHint() {
+            if (!currentEquation) {
+                alert('Сначала загрузи уравнение через коэффициенты.');
+                return;
+            }
+            hintStep++;
+            const el = document.getElementById('hint-text');
+            const { a, b, c, D } = currentEquation;
+
+            if (hintStep === 1) {
+                el.textContent =
+                    'Чтобы решить квадратное уравнение, первым делом считают дискриминант. ' +
+                    'Какая у него формула? Попробуй посчитать D для этих коэффициентов.';
+            } else if (hintStep === 2) {
+                el.textContent =
+                    `Формула: D = b² − 4ac. Подставляем твои числа: D = ${b}² − 4·${a}·${c}. ` +
+                    (D >= 0
+                        ? `Считай: должно получиться D = ${D}.`
+                        : `Считай: получится D = ${D} — это значит, что действительных корней нет.`);
+            } else if (hintStep === 3) {
+                if (D >= 0) {
+                    el.textContent =
+                        'Теперь, когда D известен, можно искать корни по формуле: x = (−b ± √D) / 2a. ' +
+                        'Попробуй подставить числа и найти оба корня.';
+                } else {
+                    el.textContent =
+                        'Так как D < 0, у этого уравнения нет действительных корней. ' +
+                        'Если ты в школе уже проходил комплексные числа — можно считать дальше, но обычно на этом останавливаются.';
+                }
+            } else {
+                if (D >= 0) {
+                    el.textContent =
+                        'Полный ход: D = ' + D + ', ' +
+                        `x₁ = ${currentEquation.x1.toFixed(3)}, x₂ = ${currentEquation.x2.toFixed(3)}. ` +
+                        'Но постарайся сначала сам пройти шаги — так лучше запоминается.';
+                } else {
+                    el.textContent =
+                        'У уравнения нет действительных корней, потому что D = ' + D + '.';
+                }
+            }
+        }
+
+        function resetHints() {
+            hintStep = 0;
+            document.getElementById('hint-text').textContent = 'Нажми «Получить подсказку», чтобы начать.';
+        }
+
+        function checkSteps() {
+            const text = document.getElementById('steps').value.trim().toLowerCase();
+            const fb = document.getElementById('step-feedback');
+            if (!text) {
+                fb.textContent = 'Сначала напиши хоть пару строк про свои шаги.';
+                fb.className = 'feedback bad';
+                return;
+            }
+
+            // простая эвристика
+            if (text.includes('d') && text.includes('=')) {
+                fb.textContent = 'Отлично, ты начал с дискриминанта — это правильный первый шаг. Продолжай.';
+                fb.className = 'feedback ok';
+            } else if (text.includes('x1') || text.includes('x2')) {
+                fb.textContent = 'Хорошо, ты уже думаешь про корни. Но сначала лучше посчитать D. Попробуй начать с него.';
+                fb.className = 'feedback bad';
+            } else {
+                fb.textContent = 'Попробуй явно написать: «D = …» или «x = …». Так я смогу точнее подсказать.';
+                fb.className = 'feedback bad';
+            }
+        }
+
+        // при загрузке сразу покажем пример, чтобы не было пусто
+        window.onload = () => {
+            // можно убрать эту строку, если хочешь, чтобы всё было пустым
+            loadEquation();
+        };
+    </script>
+</body>
+</html>
