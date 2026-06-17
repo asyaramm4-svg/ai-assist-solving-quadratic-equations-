@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Помощник: квадратные уравнения (свой ввод)</title>
+    <title>Помощник: квадратные уравнения (корни скрыты)</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -13,7 +13,7 @@
             color: #333;
         }
         .container {
-            max-width: 600px;
+            max-width: 650px;
             margin: 0 auto;
         }
         h1 {
@@ -74,6 +74,9 @@
             color: #444;
             min-height: 90px;
             margin: 15px 0;
+            background: #f9f9f9;
+            padding: 12px;
+            border-radius: 8px;
         }
         textarea {
             width: 100%;
@@ -92,15 +95,14 @@
         .feedback.ok { color: #2e7d32; }
         .feedback.bad { color: #c62828; }
         .btn {
-            display: block;
-            width: 100%;
-            padding: 12px;
+            display: inline-block;
+            padding: 10px 18px;
             border: none;
             border-radius: 8px;
-            font-size: 16px;
+            font-size: 15px;
             cursor: pointer;
             transition: transform 0.15s, box-shadow 0.15s;
-            margin-bottom: 8px;
+            margin: 4px 4px 8px 0;
         }
         .btn:active { transform: scale(0.98); }
         .btn-orange { background: #ff9800; color: white; }
@@ -109,21 +111,40 @@
             border: 1px solid #ccc;
             color: #555;
         }
+        .btn-green { background: #4caf50; color: white; }
+        .btn-group { display: flex; flex-wrap: wrap; gap: 8px; margin: 10px 0; }
+        .method-selector {
+            display: flex;
+            gap: 15px;
+            flex-wrap: wrap;
+            align-items: center;
+            margin: 10px 0;
+        }
+        .method-selector label {
+            font-weight: 500;
+        }
+        .method-selector select {
+            padding: 8px 12px;
+            border-radius: 8px;
+            border: 1px solid #ccc;
+            font-size: 15px;
+        }
         @media (max-width: 400px) {
             .inputs-row { flex-direction: column; }
             .input-group { width: 100%; }
             .card { padding: 16px; }
             h1 { font-size: 1.3rem; }
+            .btn-group .btn { width: 100%; }
         }
     </style>
 </head>
 <body>
     <div class="container">
         <h1>Помощник: квадратные уравнения</h1>
-        <p class="subtitle">Вводи свои коэффициенты — я буду подталкивать к решению.</p>
+        <p class="subtitle">Генерируй уравнения с целыми корнями и выбирай метод решения.<br><strong>Корни не показываются — найди их сам!</strong></p>
 
         <div class="card">
-            <h3>Введи коэффициенты уравнения ax² + bx + c = 0</h3>
+            <h3>Введи коэффициенты ax² + bx + c = 0</h3>
             <div class="inputs-row">
                 <div class="input-group">
                     <label>a</label>
@@ -138,10 +159,25 @@
                     <input type="number" id="c" value="0" step="any">
                 </div>
             </div>
-            <button onclick="loadEquation()" class="btn btn-orange">Загрузить уравнение</button>
+            <div class="btn-group">
+                <button onclick="loadEquation()" class="btn btn-orange">Загрузить уравнение</button>
+                <button onclick="generateIntegralEquation()" class="btn btn-green">Сгенерировать с целыми корнями</button>
+            </div>
             <div id="input-error" class="feedback bad" style="display:none; margin-top:8px;"></div>
 
             <div id="equation" class="equation">ax² + bx + c = 0</div>
+        </div>
+
+        <div class="card">
+            <h3>Метод решения</h3>
+            <div class="method-selector">
+                <label for="method">Выбери способ:</label>
+                <select id="method">
+                    <option value="discriminant">Дискриминант</option>
+                    <option value="vieta">Теорема Виета</option>
+                    <option value="consequences">Следствия (разложение на множители)</option>
+                </select>
+            </div>
         </div>
 
         <div class="card">
@@ -151,12 +187,13 @@
             </div>
             <button onclick="giveHint()" class="btn btn-orange">Получить подсказку</button>
             <button onclick="resetHints()" class="btn btn-outline">Сбросить подсказки</button>
+            <button onclick="showFullSolution()" class="btn btn-outline">Показать полное решение</button>
         </div>
 
         <div class="card">
             <h3>Твои шаги (запиши тут)</h3>
             <textarea id="steps" placeholder="Например: D = b² - 4ac = ..."></textarea>
-            <button onclick="checkSteps()" class="btn">Проверить ход решения</button>
+            <button onclick="checkSteps()" class="btn btn-orange">Проверить ход решения</button>
             <div id="step-feedback" class="feedback"></div>
         </div>
     </div>
@@ -164,6 +201,26 @@
     <script>
         let currentEquation = null;
         let hintStep = 0;
+
+        // Генерация уравнения с целыми корнями
+        function generateIntegralEquation() {
+            let x1, x2;
+            do {
+                x1 = Math.floor(Math.random() * 21) - 10;
+            } while (x1 === 0);
+            do {
+                x2 = Math.floor(Math.random() * 21) - 10;
+            } while (x2 === 0);
+            const a = 1;
+            const b = -(x1 + x2);
+            const c = x1 * x2;
+
+            document.getElementById('a').value = a;
+            document.getElementById('b').value = b;
+            document.getElementById('c').value = c;
+
+            loadEquation();
+        }
 
         function loadEquation() {
             const a = parseFloat(document.getElementById('a').value);
@@ -185,63 +242,103 @@
             errEl.style.display = 'none';
 
             const D = b * b - 4 * a * c;
-            const sqrtD = Math.sqrt(Math.abs(D)); // abs только чтобы не ломать sqrt при отриц. D
+            const sqrtD = D >= 0 ? Math.sqrt(D) : null;
             const x1 = D >= 0 ? (-b + sqrtD) / (2 * a) : null;
             const x2 = D >= 0 ? (-b - sqrtD) / (2 * a) : null;
+            const rootsAreIntegers = (x1 !== null && Number.isInteger(x1) && Number.isInteger(x2));
 
-            currentEquation = { a, b, c, D, x1, x2 };
+            currentEquation = { a, b, c, D, x1, x2, rootsAreIntegers };
 
-            const signB = b >= 0 ? '+' : '-';
-            const absB = Math.abs(b);
-            const signC = c >= 0 ? '+' : '-';
-            const absC = Math.abs(c);
+            // Форматируем уравнение (без корней)
+            let eqStr = '';
+            if (a === 1) eqStr += 'x²';
+            else if (a === -1) eqStr += '-x²';
+            else eqStr += a + 'x²';
 
-            document.getElementById('equation').textContent =
-                `${a}x² ${signB} ${absB}x ${signC} ${absC} = 0`;
+            if (b !== 0) {
+                if (b === 1) eqStr += ' + x';
+                else if (b === -1) eqStr += ' - x';
+                else if (b > 0) eqStr += ' + ' + b + 'x';
+                else eqStr += ' - ' + Math.abs(b) + 'x';
+            }
+            if (c !== 0) {
+                if (c > 0) eqStr += ' + ' + c;
+                else eqStr += ' - ' + Math.abs(c);
+            }
+            eqStr += ' = 0';
+            document.getElementById('equation').textContent = eqStr;
+
+            // Если D < 0, добавим пометку (это не корни)
+            if (D < 0) {
+                document.getElementById('equation').textContent += '  (D < 0, нет действительных корней)';
+            }
 
             resetHints();
             document.getElementById('steps').value = '';
             document.getElementById('step-feedback').textContent = '';
         }
 
+        function getMethod() {
+            return document.getElementById('method').value;
+        }
+
         function giveHint() {
             if (!currentEquation) {
-                alert('Сначала загрузи уравнение через коэффициенты.');
+                alert('Сначала загрузи или сгенерируй уравнение.');
                 return;
             }
             hintStep++;
             const el = document.getElementById('hint-text');
-            const { a, b, c, D } = currentEquation;
+            const { a, b, c, D, rootsAreIntegers } = currentEquation;
+            const method = getMethod();
 
-            if (hintStep === 1) {
-                el.textContent =
-                    'Чтобы решить квадратное уравнение, первым делом считают дискриминант. ' +
-                    'Какая у него формула? Попробуй посчитать D для этих коэффициентов.';
-            } else if (hintStep === 2) {
-                el.textContent =
-                    `Формула: D = b² − 4ac. Подставляем твои числа: D = ${b}² − 4·${a}·${c}. ` +
-                    (D >= 0
-                        ? `Считай: должно получиться D = ${D}.`
-                        : `Считай: получится D = ${D} — это значит, что действительных корней нет.`);
-            } else if (hintStep === 3) {
-                if (D >= 0) {
-                    el.textContent =
-                        'Теперь, когда D известен, можно искать корни по формуле: x = (−b ± √D) / 2a. ' +
-                        'Попробуй подставить числа и найти оба корня.';
+            if (method === 'discriminant') {
+                if (hintStep === 1) {
+                    el.textContent = 'Для решения через дискриминант первым делом вычисли D = b² − 4ac. Подставь числа и посчитай.';
+                } else if (hintStep === 2) {
+                    el.textContent = `Формула: D = ${b}² − 4·${a}·${c}. Посчитай это выражение и запиши результат.`;
+                } else if (hintStep === 3) {
+                    if (D >= 0) {
+                        el.textContent = `Теперь, когда у тебя есть D (он равен ${D}), используй формулу корней: x = (−b ± √D) / (2a). Подставь числа и найди оба корня.`;
+                    } else {
+                        el.textContent = `D = ${D} < 0, значит действительных корней нет. Запиши этот вывод.`;
+                    }
                 } else {
-                    el.textContent =
-                        'Так как D < 0, у этого уравнения нет действительных корней. ' +
-                        'Если ты в школе уже проходил комплексные числа — можно считать дальше, но обычно на этом останавливаются.';
+                    el.textContent = 'Ты уже получил все необходимые формулы. Проверь свои вычисления в блоке шагов.';
                 }
-            } else {
-                if (D >= 0) {
-                    el.textContent =
-                        'Полный ход: D = ' + D + ', ' +
-                        `x₁ = ${currentEquation.x1.toFixed(3)}, x₂ = ${currentEquation.x2.toFixed(3)}. ` +
-                        'Но постарайся сначала сам пройти шаги — так лучше запоминается.';
+            } else if (method === 'vieta') {
+                if (hintStep === 1) {
+                    el.textContent = `По теореме Виета для приведённого уравнения (a=1) сумма корней равна -b, произведение равно c. У нас a=${a}. ${a !== 1 ? 'Сначала раздели все коэффициенты на a, чтобы получить приведённое уравнение.' : 'Запиши сумму и произведение корней.'}`;
+                } else if (hintStep === 2) {
+                    if (a !== 1) {
+                        const b1 = b / a;
+                        const c1 = c / a;
+                        el.textContent = `После деления на a получаем x² + (${b1})x + (${c1}) = 0. Теперь сумма корней = ${-b1}, произведение = ${c1}. Подбери два числа, дающие такую сумму и произведение.`;
+                    } else {
+                        el.textContent = `Сумма корней = ${-b}, произведение = ${c}. Подбери два числа, дающие такую сумму и произведение.`;
+                    }
+                } else if (hintStep === 3) {
+                    el.textContent = 'Проверь, подходят ли твои числа: сумма должна равняться ' + (-b/a) + ', произведение ' + (c/a) + '. Если да — ты нашёл корни!';
                 } else {
-                    el.textContent =
-                        'У уравнения нет действительных корней, потому что D = ' + D + '.';
+                    el.textContent = 'Ты уже близко. Запиши найденные корни в поле шагов.';
+                }
+            } else if (method === 'consequences') {
+                if (hintStep === 1) {
+                    el.textContent = 'Следствия из теоремы Виета позволяют разложить трёхчлен на множители: ax²+bx+c = a(x−x₁)(x−x₂). Попробуй найти корни подбором (если они целые) или через дискриминант.';
+                } else if (hintStep === 2) {
+                    if (rootsAreIntegers) {
+                        el.textContent = `Корни целые. Попробуй подобрать их, зная, что их сумма = ${-b/a}, произведение = ${c/a}. Затем запиши разложение.`;
+                    } else {
+                        el.textContent = `Корни не целые, поэтому проще использовать дискриминант. Формула: D = b² − 4ac. Посчитай D и затем корни.`;
+                    }
+                } else if (hintStep === 3) {
+                    if (rootsAreIntegers) {
+                        el.textContent = 'Когда подберёшь корни, запиши разложение: ' + a + '(x − x₁)(x − x₂) = 0. Отсюда найди корни.';
+                    } else {
+                        el.textContent = `D = ${D}. Используй формулу корней, чтобы найти x₁ и x₂.`;
+                    }
+                } else {
+                    el.textContent = 'Проверь своё разложение или вычисления.';
                 }
             }
         }
@@ -249,6 +346,56 @@
         function resetHints() {
             hintStep = 0;
             document.getElementById('hint-text').textContent = 'Нажми «Получить подсказку», чтобы начать.';
+        }
+
+        function showFullSolution() {
+            if (!currentEquation) {
+                alert('Сначала загрузи уравнение.');
+                return;
+            }
+            const { a, b, c, D, x1, x2, rootsAreIntegers } = currentEquation;
+            let sol = '';
+            const method = getMethod();
+            if (method === 'discriminant') {
+                sol = `D = b² − 4ac = ${b}² − 4·${a}·${c} = ${D}\n`;
+                if (D >= 0) {
+                    sol += `x₁ = (−b + √D) / 2a = ${x1.toFixed(3)}\n`;
+                    sol += `x₂ = (−b − √D) / 2a = ${x2.toFixed(3)}`;
+                } else {
+                    sol += 'D < 0 ⇒ действительных корней нет.';
+                }
+            } else if (method === 'vieta') {
+                if (a === 1) {
+                    sol = `По теореме Виета:\n`;
+                    sol += `x₁ + x₂ = -b = ${-b}\n`;
+                    sol += `x₁ · x₂ = c = ${c}\n`;
+                    if (rootsAreIntegers) {
+                        sol += `Подбором: x₁ = ${x1}, x₂ = ${x2}`;
+                    } else {
+                        sol += `Корни: ${x1.toFixed(3)} и ${x2.toFixed(3)} (не целые)`;
+                    }
+                } else {
+                    sol = `Сначала разделим на a: x² + (${b/a})x + (${c/a}) = 0\n`;
+                    sol += `Сумма корней = ${-b/a}, произведение = ${c/a}\n`;
+                    if (rootsAreIntegers) {
+                        sol += `Корни: ${x1}, ${x2}`;
+                    } else {
+                        sol += `Корни: ${x1.toFixed(3)} и ${x2.toFixed(3)}`;
+                    }
+                }
+            } else { // consequences
+                if (rootsAreIntegers) {
+                    sol = `Разложение на множители:\n`;
+                    sol += `${a}x² + ${b}x + ${c} = ${a}(x - ${x1})(x - ${x2})\n`;
+                    sol += `Отсюда корни: ${x1}, ${x2}`;
+                } else {
+                    sol = `Корни не целые, поэтому разложение через дискриминант:\n`;
+                    sol += `D = ${D}\n`;
+                    sol += `x₁ = ${x1.toFixed(3)}, x₂ = ${x2.toFixed(3)}`;
+                }
+            }
+            document.getElementById('hint-text').textContent = sol;
+            hintStep = 10; // чтобы следующие нажатия давали заключительную подсказку
         }
 
         function checkSteps() {
@@ -260,23 +407,50 @@
                 return;
             }
 
-            // простая эвристика
-            if (text.includes('d') && text.includes('=')) {
-                fb.textContent = 'Отлично, ты начал с дискриминанта — это правильный первый шаг. Продолжай.';
-                fb.className = 'feedback ok';
-            } else if (text.includes('x1') || text.includes('x2')) {
-                fb.textContent = 'Хорошо, ты уже думаешь про корни. Но сначала лучше посчитать D. Попробуй начать с него.';
-                fb.className = 'feedback bad';
-            } else {
-                fb.textContent = 'Попробуй явно написать: «D = …» или «x = …». Так я смогу точнее подсказать.';
-                fb.className = 'feedback bad';
+            const method = getMethod();
+            let ok = false;
+            let msg = '';
+
+            if (method === 'discriminant') {
+                if (text.includes('d') && text.includes('=')) {
+                    ok = true;
+                    msg = 'Отлично, ты начал с дискриминанта — правильный первый шаг. Продолжай.';
+                } else if (text.includes('x1') || text.includes('x2')) {
+                    msg = 'Хорошо, но сначала лучше вычислить дискриминант. Напиши "D = ...".';
+                } else {
+                    msg = 'Попробуй явно написать "D = ..." или "x = ...".';
+                }
+            } else if (method === 'vieta') {
+                if (text.includes('сумма') || text.includes('произведение') || (text.includes('x1') && text.includes('x2'))) {
+                    ok = true;
+                    msg = 'Видно, что ты используешь теорему Виета. Отлично!';
+                } else if (text.includes('d') && text.includes('=')) {
+                    msg = 'Ты считаешь дискриминант, но выбран метод Виета. Попробуй записать сумму и произведение корней.';
+                } else {
+                    msg = 'Напиши что-то вроде "x1 + x2 = ..." или "x1 * x2 = ...".';
+                }
+            } else { // consequences
+                if (text.includes('разложение') || text.includes('множитель') || (text.includes('x-') && text.includes('('))) {
+                    ok = true;
+                    msg = 'Ты пытаешься разложить на множители — это и есть следствия из теоремы Виета. Молодец!';
+                } else if (text.includes('d') && text.includes('=')) {
+                    msg = 'Дискриминант тоже подходит, но для метода "Следствия" лучше записать разложение.';
+                } else {
+                    msg = 'Попробуй записать разложение вида "a(x - x1)(x - x2)" или укажи корни.';
+                }
             }
+
+            if (!ok && msg === '') {
+                msg = 'Попробуй переформулировать свои шаги согласно выбранному методу.';
+            }
+
+            fb.textContent = msg;
+            fb.className = ok ? 'feedback ok' : 'feedback bad';
         }
 
-        // при загрузке сразу покажем пример, чтобы не было пусто
-        window.onload = () => {
-            // можно убрать эту строку, если хочешь, чтобы всё было пустым
-            loadEquation();
+        // при загрузке сгенерируем пример
+        window.onload = function() {
+            generateIntegralEquation();
         };
     </script>
 </body>
